@@ -1,0 +1,20 @@
+https://www.raspberrypi.org/documentation/linux/usage/systemd.md
+
+cd /home/pi/Desktop/project
+sudo cp accelerometer.service /etc/systemd/system/accelerometer.service
+sudo systemctl start accelerometer.service
+
+sudo systemctl stop accelerometer.service
+
+sudo systemctl enable accelerometer.service
+
+#same for http-service
+cd /home/pi/Desktop/project
+sudo cp http-server.service /etc/systemd/system/http-server.service
+sudo systemctl start http-server.service
+sudo systemctl enable http-server.service
+
+sudo systemctl stop http-server.service
+
+JGaudet3711 - previous developer
+
