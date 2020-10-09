@@ -8,12 +8,10 @@ from datetime import datetime
 import RPi.GPIO as GPIO      # To use GPIO pins
 
 # Threshold for G
-THRESHOLD = 4
+THRESHOLD = 3
 
 # create a fixed size deque to store .5 seconds of samples @ 500 samples/second
-dqx = deque(maxlen=50)
-dqy = deque(maxlen=50)
-dqz = deque(maxlen=50)
+dq = deque(maxlen=50)
 
 # Start SPI connection
 spi = spidev.SpiDev() # Created an object
@@ -38,21 +36,21 @@ def analogInput(channel):
 # calculate G by 3 axises
 #-----------------------------------------------------------
 def getG():
-    sleep(0.002) #delay for 0.2 mls needed for ADXL377
 
     outputX = analogInput(0) # Reading from CH0
+    sleep(0.002) #delay for 0.2 mls needed for ADXL377
     outputY = analogInput(1) # Reading from CH1
+    sleep(0.002) #delay for 0.2 mls needed for ADXL377
     outputZ = analogInput(2) # Reading from CH2
+    sleep(0.002) #delay for 0.2 mls needed for ADXL377
     
     gx = interp(outputX, [0, 1023], [-200, 200])
     gy = interp(outputY, [0, 1023], [-200, 200])
     gz = interp(outputZ, [0, 1023], [-200, 200])
     
-    dqx.append(gx)
-    dqy.append(gy)
-    dqz.append(gz)
+    g=sqrt(gx*gx+gy*gy+gz*gz)
     #print('g={:2f} gx={:.2f} gy={:.2f} gz={:.2f}'.format(g,gx,gy,gz))
-    return (gx,gy,gz)
+    return g
 
 #-----------------------------------------------------------
 # write data to file
@@ -65,16 +63,30 @@ def saveError(e):
 #-----------------------------------------------------------
 # write data to file
 #-----------------------------------------------------------
-    
-def queueToStr(dq):
-    return ','.join(['{:.2f}'.format(x) for x in dq])
-    
-def save():
+def save(val):
     f = open("data/data.txt", "a")
-    dtStr = datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
-    s = '{{"date":"{}","gx":[{}],"gy":[{}],"gz":[{}]}}'.format(dtStr,queueToStr(dqx),queueToStr(dqy),queueToStr(dqz))
+    s = '{}\t{:.2f}\n'.format(datetime.now(),val)
     print(s)
-    f.write(s+'\n')
+    f.write(s)
+    f.close()
+
+def saveAll2():
+    f = open("data.txt", "a")
+    s=','.join(['{:.2f}'.format(x) for x in dq])
+    print(s)
+    f.write('{}\t{}\n'.format(datetime.now(),s))
+    f.close()
+
+def saveAll():
+    f = open("data.txt", "a")
+    s=str(datetime.now())+'\n'
+    print(s)
+    f.write(s)
+    while dq:
+        row=dq.popleft()
+        s = '{:.2f}'.format(row)
+        print(s)
+        f.write(s+'\n')
     f.close()
 
 #-----------------------------------------------------------
@@ -90,11 +102,14 @@ def blynk():
 #-----------------------------------------------------------
 while 1:
     try:
-        g = getG()
-        if g[0] > THRESHOLD or g[1] > THRESHOLD or g[2] > THRESHOLD:
+        g=getG()
+        dq.append(g)
+        if g > THRESHOLD:
             for _ in range(25):
-                getG()
-            save()
+                g=getG()
+                dq.append(g)
+            val=max(dq)
+            saveAll()
             blynk()
          
     except Exception as e:
