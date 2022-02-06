@@ -38,7 +38,7 @@ def analogInput(channel):
 # calculate G by 3 axises
 #-----------------------------------------------------------
 def getG():
-    sleep(0.002) #delay for 0.2 mls needed for ADXL377
+    sleep(0.002) #delay for 2 mls needed for ADXL377
 
     outputX = analogInput(0) # Reading from CH0
     outputY = analogInput(1) # Reading from CH1
